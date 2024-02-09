@@ -1,0 +1,25 @@
+-- Confirm which of the three factors above is causing the issue
+SELECT SUM(version_store_reserved_page_count) AS [version store pages used],
+          (SUM(version_store_reserved_page_count)*1.0/128) AS [version store space in MB],
+           SUM(internal_object_reserved_page_count) AS [internal object pages used],
+          (SUM(internal_object_reserved_page_count)*1.0/128) AS [internal object space in MB],
+           SUM(user_object_reserved_page_count) AS [user object pages used],
+          (SUM(user_object_reserved_page_count)*1.0/128) AS [user object space in MB]
+FROM tempdb.sys.dm_db_file_space_usage;
+
+====================
+
+-- Find which session is creating big sized user objects
+SELECT session_id,
+  SUM(user_objects_alloc_page_count) AS task_user_objects_alloc_page_count,
+  SUM(user_objects_dealloc_page_count) AS task_user_objects_dealloc_page_count,
+  (SUM(user_objects_alloc_page_count)*1.0/128) AS [user_object_allocated space in MB],
+  (SUM(user_objects_dealloc_page_count)*1.0/128) AS [user_object_deallocated space in MB]
+FROM sys.dm_db_session_space_usage
+GROUP BY session_id
+ORDER BY [user_object_allocated space in MB] DESC;
+
+==================
+--Find login time and session_status
+SELECT login_time, status FROM sys.dm_exec_sessions where session_id=58
+===================
